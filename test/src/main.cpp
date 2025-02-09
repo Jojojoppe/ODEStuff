@@ -2,6 +2,7 @@
 #include "solver_euler.h"
 #include "solver_rk.h"
 #include "solver_radau.h"
+#include "solver_bdf.h"
 
 #include <fstream>
 #include <iostream>
@@ -117,6 +118,14 @@ int main(int argc, char **argv)
 		auto res = solver.solve(initial_conditions, t_start, t_end, dt);
 		t.stop();
 		save_results("results_rda2.txt", res.first, res.second);
+	}
+
+	{
+		BDF solver{model, 1e-3};
+		Timer t{"bdf"};
+		auto res = solver.solve(initial_conditions, t_start, t_end, dt);
+		t.stop();
+		save_results("results_bdf.txt", res.first, res.second);
 	}
 
 	return 0;
