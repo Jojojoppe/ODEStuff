@@ -16,7 +16,7 @@ include(SubProject)
 
 Git_External(
   ${PROJECT_SOURCE_DIR}/external/ginac 
-  https://github.com/AlexeiSheplyakov/GiNaC.git
+  git://www.ginac.de/ginac.git
   master
 )
 add_subproject(external/ginac)
