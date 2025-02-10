@@ -125,7 +125,7 @@ int main(int argc, char **argv)
 		Timer t{"bdf"};
 		auto res = solver.solve(initial_conditions, t_start, t_end, dt);
 		t.stop();
-		save_results("results_bdf.txt", res.first, res.second);
+		// save_results("results_bdf.txt", res.first, res.second);
 	}
 
 	return 0;

@@ -1,4 +1,4 @@
-add_library(odelib SHARED
+add_library(odelib STATIC
   ${CMAKE_CURRENT_SOURCE_DIR}/src/odesolver.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/src/solver_euler.cpp
   ${CMAKE_CURRENT_SOURCE_DIR}/src/solver_rk.cpp

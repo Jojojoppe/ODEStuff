@@ -2,3 +2,5 @@ a.out
 result_*
 .vscode
 build
+CMakeFiles
+CMakeCache*
