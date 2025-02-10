@@ -11,3 +11,11 @@ add_executable(ginactest
 target_link_libraries(ginactest PRIVATE
   ${GINAC_LIBRARIES}
 )
+
+add_executable(ginacode
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/ginacode.cpp
+)
+target_link_libraries(ginacode PRIVATE
+  ${GINAC_LIBRARIES}
+  odelib
+)
