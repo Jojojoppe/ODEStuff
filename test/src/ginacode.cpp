@@ -69,7 +69,51 @@ public:
 
 	std::vector<double> operator()(double time, const std::vector<double> &state)
 	{
-		return {};
+		std::vector<double> newState(state.size());
+		std::vector<double> variables(m_updatedVariables.size());
+
+		for(size_t i=0; i<state.size(); i++)
+		{
+			newState[i] = state[i];
+		}
+		for(size_t i=0; i<variables.size(); i++)
+		{
+			variables[i] = 0;
+		}
+
+		// for each solve equation
+		for(const auto& eq : m_diffEqs)
+		{
+			ginac::lst subs = m_params;
+			// substitute t with time
+			subs.append(m_t == time);
+			// substitute variables
+			size_t vI = 0;
+			for(const auto& v : m_variables)
+			{
+				subs.append(v == variables[vI]);
+				vI++;
+			}
+			// substitute state variables with state[i]
+			for(const auto& s : m_initCnds)
+			{
+				subs.append(s.lhs() == state[m_stateVariables.at(s.lhs().gethash())]);
+			}
+
+			// solve
+			ginac::ex toSolve = eq.rhs().subs(subs);
+			if (eq.lhs().match(Ddt(ginac::wild())))
+			{
+				newState[m_stateVariables[eq.lhs().op(0).gethash()]] = ginac::ex_to<ginac::numeric>(toSolve.evalf()).to_double();
+			}
+			else 
+			{
+				variables[m_updatedVariables[eq.lhs().gethash()]] = ginac::ex_to<ginac::numeric>(toSolve.evalf()).to_double();
+			}
+		}
+
+		// return state variables
+		return newState;
 	}
 
 private:
@@ -134,7 +178,13 @@ private:
 				else
 				{
 					// ... == ...
-					if(eq.lhs().nops() == 1)
+					// This only is possible if no state variable functions are in yet
+					if(stateVariables>0)
+					{
+						std::cout<< "ERROR: '" << eq << std::endl;
+						throw std::runtime_error("State variable update is given before variable updates");
+					}
+					if(ginac::is_a<ginac::symbol>(eq.lhs()))
 					{
 						// Updated variable found
 						m_updatedVariables[eq.lhs().gethash()] = updatedVariables++;
@@ -181,25 +231,25 @@ int main(int argc, char **argv)
 {
 	ginac::symbol I("I"), Q("Q");		  // State variables
 	ginac::symbol L("L"), R("R"), C("C"); // Parameters
-	ginac::symbol t("t");
+	ginac::symbol t("t"), x("x");
 	ginac::lst diff_eqs = {
-		Ddt(Q) == I,
-		Ddt(I) == (-R / L) * I - (1.0 / (L * C)) * Q,
+		x == I + (t>1) ? 1 : 0,
+		Ddt(Q) == x,
+		Ddt(I) == ( (-1 * R / L) * x ) - ( (1.0 / (L * C)) * Q) ,
 	};
 	ginac::lst init_cnds = {I == 1.0, Q == 0};
-	ginac::lst params = {R == 0.1, L == 0.2, C == 0.4};
-	ginac::lst variables = {};
+	ginac::lst params = {R == 0.1, L == 0.5, C == 0.5};
+	ginac::lst variables = {x};
 
 	std::cout << "diff_eqs:\t" << diff_eqs << std::endl;
 	std::cout << "init_cnds:\t" << init_cnds << std::endl;
 
 	ODESystem system{diff_eqs, init_cnds, params, variables, t};
-	RK45 solver(system);
+	RK45 solver(system, 1e-6, 0.1);
 
-	auto is = system.getInitialState();
-
-	// auto result = solver.solve(system.getInitialState(), 0, 15, 0.1);
-	// save_results("results.txt", result.first, result.second);
+	//system(0, system.getInitialState());
+	auto result = solver.solve(system.getInitialState(), 0, 15, 0.1);
+	save_results("results.txt", result.first, result.second);
 
 	return 0;
 }
