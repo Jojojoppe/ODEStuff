@@ -1,6 +1,9 @@
+#include <ginac/basic.h>
+#include <ginac/ex.h>
 #include <iostream>
 #include <fstream>
 #include <map>
+#include <stdexcept>
 #include <string>
 
 #include <ginac/ginac.h>
@@ -18,104 +21,138 @@ REGISTER_FUNCTION(Int, dummy());
 class ODESystem
 {
 public:
-    ODESystem(const ginac::lst &diff_eqs, const ginac::lst &init_cnds, const ginac::lst &params, const ginac::symbol &t)
-        : m_diff_eqs(diff_eqs), m_init_cnds(init_cnds), m_params(params), m_t(t)
-    {
-        // Extract variables from initial conditions
-        for (const auto &ic : m_init_cnds)
-        {
-            ginac::symbol var = ginac::ex_to<ginac::symbol>(ic.lhs());
-            m_variables.push_back(var);
-            m_var_index[var.gethash()] = m_variables.size() - 1;
-        }
-        // Determine the state variable of each equation
-        for (const auto &de : m_diff_eqs)
-        {
-            ginac::ex lhs = de.lhs();
-            ginac::symbol svar;
-            // Double check if it only contains one thing and is or contains a symbol
-            if (ginac::is_a<ginac::symbol>(lhs))
-            {
-                svar = ginac::ex_to<ginac::symbol>(lhs);
-            }
-            else if (lhs.nops() == 1 && ginac::is_a<ginac::symbol>(lhs.op(0)))
-            {
-                svar = ginac::ex_to<ginac::symbol>(lhs.op(0));
-            }
-            else
-            {
-                std::cerr << "lhs: " << lhs << std::endl;
-                throw std::runtime_error("(Differential) equation lhs is not in the form of Ddt(x) or x");
-            }
-            // Check if svar in map
-            if (m_var_index.count(svar.gethash()) > 0)
-            {
-                m_eq_to_variable.push_back(svar.gethash());
-            }
-            else
-            {
-                throw std::runtime_error("Symbol " + svar.get_name() + " is not in state variable list");
-            }
-        }
-    }
+	ODESystem(const ginac::lst &diff_eqs, const ginac::lst &init_cnds,
+			  const ginac::lst &params, const ginac::lst &variables, const ginac::symbol &t)
+		: m_diffEqs(diff_eqs)
+		, m_initCnds(init_cnds)
+		, m_params(params)
+		, m_variables(variables) 
+		, m_t(t)
+	{
+		mapItems(m_initCnds, m_initCndsMap);
+		mapItems(m_params, m_paramsMap);
+		mapItems(m_variables, m_variablesMap);
+		getStateVariables();
+	}
 
-    std::vector<double> get_initial_state() const
-    {
-        std::vector<double> initial_state(m_variables.size());
-        for (const auto &ic : m_init_cnds)
-        {
-            ginac::symbol var = ginac::ex_to<ginac::symbol>(ic.lhs());
-            ginac::ex rhs_evaluated = ic.rhs().evalf();
-            if (ginac::is_a<ginac::numeric>(rhs_evaluated))
-            {
-                double value = ginac::ex_to<ginac::numeric>(rhs_evaluated).to_double();
-                auto idx = m_var_index.at(var.gethash());
-                initial_state[idx] = value;
-            }
-            else
-            {
-                throw std::runtime_error("Initial condition for variable " + var.get_name() + " did not evaluate to a numeric value.");
-            }
-        }
-        return initial_state;
-    }
+	std::vector<double> getInitialState() const
+	{
+		std::vector<double> initialStates(m_stateVariables.size());
+		for(const auto& ic : m_initCnds)
+		{
+			ginac::symbol s = ginac::ex_to<ginac::symbol>(ic.lhs());
+			ginac::ex eval = ic.rhs().evalf();
+			std::cout << s << " ";
+			if(ginac::is_a<ginac::numeric>(eval))
+			{
+				double v = ginac::ex_to<ginac::numeric>(eval).to_double();
+				if(m_stateVariables.count(s.gethash())>0)
+				{
+					auto idx = m_stateVariables.at(s.gethash());
+					std::cout << "idx " << idx << " value " << v << std::endl;
+					initialStates[m_stateVariables.at(s.gethash())] = v;
+				}
+				else
+				{
+					std::cerr << "ERROR: " << ic << std::endl;
+					throw std::runtime_error("Initial state variable not used in system");
+				}
+			}
+			else 
+			{
+				std::cerr << "ERROR: " << ic << std::endl;
+				throw std::runtime_error("Right hand side of initial condition could not be evaluated until a numeric value");
+			}
+		}
+		return initialStates;
+	}
 
-    std::vector<double> operator()(double time, const std::vector<double> &state)
-    {
-        std::vector<double> derivatives(state.size());
-
-        // Create a substitution list for the current state and time
-        ginac::lst substitutions;
-        for (const auto &var : m_variables)
-        {
-            substitutions.append(var == state[m_var_index[var.gethash()]]);
-        }
-        substitutions.append(m_t == time);
-        for (const auto &p : m_params)
-        {
-            substitutions.append(p);
-        }
-
-        // Evaluate each differential equation
-        for (size_t i = 0; i < m_diff_eqs.nops(); ++i)
-        {
-            GiNaC::ex eq = m_diff_eqs.op(i);
-            GiNaC::ex evaluated_derivative = eq.rhs().subs(substitutions);
-            size_t idx = m_var_index[m_eq_to_variable[i]];
-            derivatives[idx] = GiNaC::ex_to<GiNaC::numeric>(evaluated_derivative.evalf()).to_double();
-        }
-
-        return derivatives;
-    }
+	std::vector<double> operator()(double time, const std::vector<double> &state)
+	{
+		return {};
+	}
 
 private:
-    ginac::lst m_diff_eqs;
-    ginac::lst m_init_cnds;
-    ginac::lst m_params;
-    std::vector<ginac::symbol> m_variables;
-    std::vector<unsigned int> m_eq_to_variable;
-    std::map<unsigned int, size_t> m_var_index;
-    ginac::symbol m_t;
+	const ginac::lst m_diffEqs;
+	const ginac::lst m_initCnds;
+	const ginac::lst m_params;
+	const ginac::lst m_variables;
+	const ginac::symbol m_t;
+	std::map<unsigned int, size_t> m_initCndsMap;
+	std::map<unsigned int, size_t> m_paramsMap;
+	std::map<unsigned int, size_t> m_variablesMap;
+	std::map<unsigned int, size_t> m_stateVariables;
+	std::map<unsigned int, size_t> m_updatedVariables;
+
+	void mapItems(const ginac::lst& list, std::map<unsigned int, size_t>& map)
+	{
+		size_t i = 0;
+		for(const auto& s : list)
+		{
+			// Check if s is a symbol
+			if(ginac::is_a<ginac::symbol>(s))
+			{
+				map[ginac::ex_to<ginac::symbol>(s).gethash()] = i;
+			}
+			// Check if s is an equation, if so if the lhs is a symbol
+			else if(ginac::is_a<ginac::relational>(s) && ginac::is_a<ginac::symbol>(s.lhs()))
+			{
+				map[ginac::ex_to<ginac::symbol>(s.lhs()).gethash()] = i;
+			}
+			else
+			{
+				std::cerr << "ERROR: " << s << std::endl;
+				throw std::runtime_error("Given item is not a symbol or symbol relation");
+			}
+		}
+	}
+
+	void getStateVariables()
+	{
+		size_t stateVariables = 0;
+		size_t updatedVariables = 0;
+		for(const auto& eq : m_diffEqs)
+		{
+			// If an equation starts with a Ddt its content is a state variable
+			if(ginac::is_a<ginac::relational>(eq))
+			{
+				if (eq.lhs().match(Ddt(ginac::wild())))
+				{
+					// Ddt(..) == ...
+					if(ginac::is_a<ginac::symbol>(eq.lhs().op(0)))
+					{
+						// State variable found
+						std::cout << "state variable: " << eq.lhs().op(0) << " idx " << stateVariables << std::endl;
+						m_stateVariables[eq.lhs().op(0).gethash()] = stateVariables++;
+					}
+					else
+					{
+						std::cerr << "ERROR: " << eq.lhs() << " " << eq.lhs().op(0) << std::endl;
+						throw std::runtime_error("Given derivative has more than one variable in it or is not a symb");
+					}
+				}
+				else
+				{
+					// ... == ...
+					if(eq.lhs().nops() == 1)
+					{
+						// Updated variable found
+						m_updatedVariables[eq.lhs().gethash()] = updatedVariables++;
+					}
+					else
+					{
+						std::cerr << "ERROR: " << eq.lhs() << std::endl;
+						throw std::runtime_error("Given variable assignment does not assign to a variable");
+					}
+				}
+			}
+			else
+			{
+				std::cerr << "ERROR: " << eq << std::endl;
+				throw std::runtime_error("Given equation is not a relation (must contain ==)");
+			}
+		}
+	}
 };
 
 // Function to write ODE results to a file
@@ -142,23 +179,27 @@ void save_results(const std::string &filename, const std::vector<double> &t, con
 
 int main(int argc, char **argv)
 {
-    ginac::symbol I("I"), Q("Q");         // State variables
-    ginac::symbol L("L"), R("R"), C("C"); // Parameters
-    ginac::symbol t("t");
-    ginac::lst diff_eqs = {
-        Ddt(Q) == I,
-        Ddt(I) == (-R / L) * I - (1.0 / (L * C)) * Q,
-    };
-    ginac::lst init_cnds = {I == 1.0, Q == 0};
-    ginac::lst params = {R == 0.1, L == 0.2, C == 0.4};
+	ginac::symbol I("I"), Q("Q");		  // State variables
+	ginac::symbol L("L"), R("R"), C("C"); // Parameters
+	ginac::symbol t("t");
+	ginac::lst diff_eqs = {
+		Ddt(Q) == I,
+		Ddt(I) == (-R / L) * I - (1.0 / (L * C)) * Q,
+	};
+	ginac::lst init_cnds = {I == 1.0, Q == 0};
+	ginac::lst params = {R == 0.1, L == 0.2, C == 0.4};
+	ginac::lst variables = {};
 
-    std::cout << "diff_eqs:\t" << diff_eqs << std::endl;
-    std::cout << "init_cnds:\t" << init_cnds << std::endl;
+	std::cout << "diff_eqs:\t" << diff_eqs << std::endl;
+	std::cout << "init_cnds:\t" << init_cnds << std::endl;
 
-    ODESystem system{diff_eqs, init_cnds, params, t};
-    RK45 solver(system);
-    auto result = solver.solve(system.get_initial_state(), 0, 15, 0.1);
-    save_results("results.txt", result.first, result.second);
+	ODESystem system{diff_eqs, init_cnds, params, variables, t};
+	RK45 solver(system);
 
-    return 0;
+	auto is = system.getInitialState();
+
+	// auto result = solver.solve(system.getInitialState(), 0, 15, 0.1);
+	// save_results("results.txt", result.first, result.second);
+
+	return 0;
 }
