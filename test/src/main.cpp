@@ -91,41 +91,41 @@ int main(int argc, char **argv)
 	{
 		ForwardEuler solver{model};
 		Timer t{"fe"};
-		auto res = solver.solve(initial_conditions, t_start, t_end, dt);
+		auto [tres, yres, nsres] = solver.solve(initial_conditions, t_start, t_end, dt);
 		t.stop();
-		// save_results("results_fe.txt", res.first, res.second);
+		// save_results("results_fe.txt", tres, yres);
 	}
 
 	{
 		RK4 solver{model};
 		Timer t{"rk4"};
-		auto res = solver.solve(initial_conditions, t_start, t_end, dt);
+		auto [tres, yres, nsres] = solver.solve(initial_conditions, t_start, t_end, dt);
 		t.stop();
-		save_results("results_rk4.txt", res.first, res.second);
+		save_results("results_rk4.txt", tres, yres);
 	}
 
 	{
 		RK45 solver{model};
 		Timer t{"rk45"};
-		auto res = solver.solve(initial_conditions, t_start, t_end, dt);
+		auto [tres, yres, nsres] = solver.solve(initial_conditions, t_start, t_end, dt);
 		t.stop();
-		save_results("results_rk45.txt", res.first, res.second);
+		save_results("results_rk45.txt", tres, yres);
 	}
 
 	{
 		RadauIIA solver{model, 1e-3};
 		Timer t{"rda2"};
-		auto res = solver.solve(initial_conditions, t_start, t_end, dt);
+		auto [tres, yres, nsres] = solver.solve(initial_conditions, t_start, t_end, dt);
 		t.stop();
-		save_results("results_rda2.txt", res.first, res.second);
+		save_results("results_rda2.txt", tres, yres);
 	}
 
 	{
 		BDF solver{model, 1e-3};
 		Timer t{"bdf"};
-		auto res = solver.solve(initial_conditions, t_start, t_end, dt);
+		auto [tres, yres, nsres] = solver.solve(initial_conditions, t_start, t_end, dt);
 		t.stop();
-		// save_results("results_bdf.txt", res.first, res.second);
+		// save_results("results_bdf.txt", tres, yres
 	}
 
 	return 0;

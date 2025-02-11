@@ -4,3 +4,5 @@ result_*
 build
 CMakeFiles
 CMakeCache*
+results*
+.cache

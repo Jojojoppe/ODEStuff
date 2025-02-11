@@ -266,8 +266,8 @@ int main(int argc, char **argv)
 	RK45 solver(system);
 
 	// system(0, system.getInitialState());
-	auto result = solver.solve(system.getInitialState(), 0, 10, 0.1);
-	save_results("results.txt", result.first, result.second);
+	auto [tres, yres, nsres] = solver.solve(system.getInitialState(), 0, 10, 0.1);
+	save_results("results.txt", tres, yres);
 
 	return 0;
 }
