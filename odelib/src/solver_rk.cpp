@@ -2,24 +2,18 @@
 #include "vector_math.h"
 #include <cmath>
 
-/**
- * @brief Constructor.
- *
- * @param derivatives A function representing the derivative of the state, i.e., f(t, y).
- */
 RK4::RK4(std::function<std::vector<double>(double, const std::vector<double> &)> derivatives)
 	: ODESolver(derivatives)
 {
 }
 
-/**
- * @brief Performs one integration step using the Runge-Kutta 4th order method.
- *
- * @param t The current time.
- * @param y The current state vector.
- * @param dt The timestep to attempt.
- * @return A StepResult struct with the new state and timestep information.
- */
+RK4::RK4(std::function<std::vector<double>(double, const std::vector<double> &)> derivatives,
+	std::function<std::vector<double>(double, const std::vector<double>&)> nonStateVariables)
+	: ODESolver(derivatives, nonStateVariables)
+{
+}
+
+
 ODESolver::StepResult RK4::step(double t, const std::vector<double> &y, double dt)
 {
 	std::vector<double> k1 = derivatives_func(t, y);
@@ -35,30 +29,18 @@ ODESolver::StepResult RK4::step(double t, const std::vector<double> &y, double d
 	return {y_new, dt, dt};
 }
 
-/**
- * @brief Constructor.
- *
- * @param f A function representing the derivative of the state, i.e., f(t, y).
- * @param tol The tolerance for the error estimation (default is 1e-6).
- * @param max_step The maximum allowed step size (default is 1).
- */
 RK45::RK45(std::function<std::vector<double>(double, const std::vector<double> &)> f, double tol, double max_step)
 	: ODESolver(f), tol{tol}, max_step{max_step}
 {
 }
 
-/**
- * @brief Performs one integration step using the Runge-Kutta 4th and 5th order method (Dormand-Prince).
- *
- * This method computes both the 4th and 5th order solutions and estimates the error between them.
- * The step size is adjusted dynamically based on the error to ensure that the solution meets the
- * specified tolerance.
- *
- * @param t The current time.
- * @param y The current state vector.
- * @param dt The timestep to attempt.
- * @return A StepResult struct with the new state and timestep information.
- */
+RK45::RK45(std::function<std::vector<double>(double, const std::vector<double> &)> derivatives,
+	std::function<std::vector<double>(double, const std::vector<double>&)> nonStateVariables,
+	double tol, double max_step)
+	: ODESolver(derivatives, nonStateVariables), tol(tol), max_step(max_step)
+{
+}
+
 ODESolver::StepResult RK45::step(double t, const std::vector<double> &y, double dt)
 {
 	double dt_current = dt;

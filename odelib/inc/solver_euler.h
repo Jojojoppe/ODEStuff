@@ -20,6 +20,14 @@ public:
      * @param derivatives A function representing the derivative of the state, i.e., f(t, y).
      */
     ForwardEuler(std::function<std::vector<double>(double, const std::vector<double> &)> derivatives);
+    /**
+     * @brief Constructor.
+     *
+     * @param derivatives A function representing the derivative of the state, i.e. f(t,y)
+     * @param nonStateVariables A function calculating extra (non-state) variables from the state and time (g(t, y))
+     */
+    ForwardEuler(std::function<std::vector<double>(double, const std::vector<double>&)> derivatives,
+        std::function<std::vector<double>(double, const std::vector<double>&)> nonStateVariables);
 
 protected:
     /**

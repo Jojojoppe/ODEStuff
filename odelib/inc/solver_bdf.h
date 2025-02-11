@@ -13,6 +13,17 @@ public:
 	 * @param max_step Maximum allowable step size.
 	 */
 	BDF(std::function<std::vector<double>(double, const std::vector<double> &)> f, double local_tol = 1e-6, double max_step = 1);
+    /**
+     * @brief Constructor.
+     *
+     * @param derivatives A function representing the derivative of the state, i.e. f(t,y)
+     * @param nonStateVariables A function calculating extra (non-state) variables from the state and time (g(t, y))
+	 * @param tol The tolerance for the error estimation (default is 1e-6).
+	 * @param max_step The maximum allowed step size (default is 1).
+     */
+    BDF(std::function<std::vector<double>(double, const std::vector<double>&)> derivatives,
+        std::function<std::vector<double>(double, const std::vector<double>&)> nonStateVariables, 
+		double tol=1e6, double max_step = 1);
 
 protected:
 	/**

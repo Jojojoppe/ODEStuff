@@ -1,23 +1,16 @@
 #include "solver_euler.h"
 
-/**
- * @brief Constructor.
- *
- * @param derivatives A function representing the derivative of the state, i.e., f(t, y).
- */
 ForwardEuler::ForwardEuler(std::function<std::vector<double>(double, const std::vector<double> &)> derivatives)
 	: ODESolver(derivatives)
 {
 }
 
-/**
- * @brief Performs one integration step using the Forward Euler method.
- *
- * @param t The current time.
- * @param y The current state vector.
- * @param dt The timestep to attempt.
- * @return A StepResult struct with the new state and timestep information.
- */
+ForwardEuler::ForwardEuler(std::function<std::vector<double>(double, const std::vector<double> &)> derivatives,
+	std::function<std::vector<double>(double, const std::vector<double>&)> nonStateVariables)
+	: ODESolver(derivatives, nonStateVariables)
+{
+}
+
 ODESolver::StepResult ForwardEuler::step(double t, const std::vector<double> &y, double dt)
 {
 	std::vector<double> y_new = y;

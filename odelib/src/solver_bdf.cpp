@@ -3,13 +3,18 @@
 #include <cmath>
 #include <algorithm>
 
-// Constructor for the BDF solver.
 BDF::BDF(std::function<std::vector<double>(double, const std::vector<double> &)> f, double local_tol, double max_step)
 	: ODESolver(f), local_tol(local_tol), max_step(max_step)
 {
 }
 
-// Performs a single step of the BDF integration method.
+BDF::BDF(std::function<std::vector<double>(double, const std::vector<double> &)> derivatives,
+	std::function<std::vector<double>(double, const std::vector<double>&)> nonStateVariables,
+	double tol, double max_step)
+	: ODESolver(derivatives, nonStateVariables), local_tol(tol), max_step(max_step)
+{
+}
+
 ODESolver::StepResult BDF::step(double t, const std::vector<double> &y, double dt)
 {
 	int n = y.size();

@@ -9,6 +9,13 @@ RadauIIA::RadauIIA(std::function<std::vector<double>(double, const std::vector<d
 {
 }
 
+RadauIIA::RadauIIA(std::function<std::vector<double>(double, const std::vector<double> &)> derivatives,
+	std::function<std::vector<double>(double, const std::vector<double>&)> nonStateVariables,
+	double tol, double max_step)
+	: ODESolver(derivatives, nonStateVariables), local_tol(tol), max_step(max_step)
+{
+}
+
 // Performs a single step of the RadauIIA integration method.
 ODESolver::StepResult RadauIIA::step(double t, const std::vector<double> &y, double dt)
 {

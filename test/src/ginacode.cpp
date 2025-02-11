@@ -224,7 +224,7 @@ private:
 };
 
 // Function to write ODE results to a file
-void save_results(const std::string &filename, const std::vector<double> &t, const std::vector<std::vector<double>> &y)
+void save_results(const std::string &filename, const std::vector<double> &t, const std::vector<std::vector<double>> &y, const std::vector<std::vector<double>> &ns = {})
 {
 	std::ofstream file(filename);
 	if (!file)
@@ -239,6 +239,13 @@ void save_results(const std::string &filename, const std::vector<double> &t, con
 		for (size_t j = 0; j < y[i].size(); ++j)
 		{
 			file << " " << y[i][j];
+		}
+		if (ns.size()>0)
+		{
+			for (size_t j = 0; j < ns[i].size(); ++j)
+			{
+				file << " " << ns[i][j];
+			}
 		}
 		file << "\n";
 	}
@@ -259,15 +266,21 @@ int main(int argc, char **argv)
 	ginac::lst params = {R == 0.1, L == 0.5, C == 0.5};
 	ginac::lst variables = {x};
 
+	// TODO simple test function to test non-state variable calculation, still needs to be moved to odesystem
+	auto var = [](double t, const std::vector<double>& y) -> std::vector<double> {
+		return {y[0] * y[1]};
+	};
+
 	std::cout << "diff_eqs:\t" << diff_eqs << std::endl;
 	std::cout << "init_cnds:\t" << init_cnds << std::endl;
 
 	ODESystem system{diff_eqs, init_cnds, params, variables, t};
-	RK45 solver(system);
+	RK45 solver(system, var);
 
 	// system(0, system.getInitialState());
 	auto [tres, yres, nsres] = solver.solve(system.getInitialState(), 0, 10, 0.1);
-	save_results("results.txt", tres, yres);
+	std::cout << tres.size() << "  " << yres.size() << "  " << nsres.size() << std::endl;
+	save_results("results.txt", tres, yres, nsres);
 
 	return 0;
 }
